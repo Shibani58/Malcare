@@ -32,5 +32,17 @@ The core functionality of the Malcare application revolves around utilizing a ma
 1. Clone the repository:
    ```bash
    git clone https://github.com/Shibani58/Malcare.git
+
+2. Navigate into the project directory:
+cd Malcare
+
+3. Install required packages:
 pip install -r requirements.txt
+
+4.Run the application:
+python app.py
+
+5.Open the web interface in your browser and input patient data to receive malaria diagnosis via email.
+
+
 
