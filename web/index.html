@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MalCare</title>
+  <meta name="description" content="MalCare – AI-assisted malaria and tuberculosis screening demo that runs entirely in your browser.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="#"><img src="favicon.svg" alt="" width="28" height="28"> Mal<span>Care</span></a>
+      <nav>
+        <a href="#screen">Screening</a>
+        <a href="#ask">Ask</a>
+        <a href="#how">How it works</a>
+        <a href="https://github.com/Shibani58/Malcare" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <h1>AI-assisted malaria &amp; tuberculosis screening</h1>
+      <p class="lead">Upload a blood-smear cell image or a chest X-ray and a neural network classifies it in seconds.
+        Everything runs <strong>in your browser</strong>: no image or personal data ever leaves your device.</p>
+      <p class="notice" role="note">Research and learning demo only. The models are not clinically validated and must
+        not be used for diagnosis.</p>
+      <p class="model-status" id="model-status">Loading models…</p>
+    </section>
+
+    <section id="screen" class="wrap">
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-test="malaria" aria-selected="true">Malaria · blood smear</button>
+        <button role="tab" class="tab" data-test="tb" aria-selected="false">Tuberculosis · chest X-ray</button>
+      </div>
+
+      <div class="screen-grid">
+        <div class="card">
+          <label class="drop" id="drop">
+            <input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
+            <img id="preview" alt="" hidden>
+            <span id="drop-text"><strong>Choose an image</strong> or drag it here<br><small id="drop-hint">A single red-blood-cell image (PNG or JPG)</small></span>
+          </label>
+          <div class="actions">
+            <button class="btn" id="sample">Try a sample image</button>
+            <button class="btn primary" id="analyse" disabled>Analyse</button>
+          </div>
+        </div>
+
+        <div class="card result" id="result" aria-live="polite">
+          <p class="muted">The result will appear here.</p>
+        </div>
+      </div>
+
+      <div class="card history">
+        <div class="history-head">
+          <h2>This session</h2>
+          <span class="muted small">Kept only in this tab and cleared when you close it.</span>
+        </div>
+        <div class="stats" id="stats"></div>
+        <table>
+          <thead><tr><th>Time</th><th>Test</th><th>Result</th><th class="num">Confidence</th></tr></thead>
+          <tbody id="history"><tr><td colspan="4" class="muted">No images analysed yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="ask" class="wrap">
+      <h2>Ask about malaria or tuberculosis</h2>
+      <p class="muted">A TF-IDF question-answering engine picks the most relevant document, then the sentence that best answers your question.</p>
+      <form class="ask" id="ask-form">
+        <input id="question" type="text" placeholder="e.g. How is malaria transmitted?" autocomplete="off" aria-label="Your question">
+        <button class="btn primary" type="submit">Ask</button>
+      </form>
+      <div class="chips" id="chips">
+        <button class="chip">What are the symptoms of malaria?</button>
+        <button class="chip">How is tuberculosis spread?</button>
+        <button class="chip">How is malaria diagnosed?</button>
+        <button class="chip">Can tuberculosis be cured?</button>
+      </div>
+      <div class="card answer" id="answer" hidden></div>
+    </section>
+
+    <section id="how" class="wrap">
+      <h2>How it works</h2>
+      <div class="how-grid">
+        <div class="card">
+          <h3>Image classifiers</h3>
+          <p>Two transfer-learning models: a MobileNet feature extractor followed by a 100-unit dense layer and a
+            2-class softmax (uninfected vs. infected). Images are centre-cropped to 224×224 and scaled to [-1, 1].</p>
+        </div>
+        <div class="card">
+          <h3>In-browser inference</h3>
+          <p>The original Keras models are converted to TensorFlow.js at deploy time, so predictions run locally on
+            your device with no server and no data upload.</p>
+        </div>
+        <div class="card">
+          <h3>Question answering</h3>
+          <p>Documents and sentences are ranked with TF-IDF after lower-casing and removing punctuation and
+            stop-words; ties go to the sentence with the higher query-term density.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <span>MalCare by <a href="https://shibani58.github.io/" target="_blank" rel="noopener">Shibani Purbey</a></span>
+    <span class="muted small">Q&amp;A text from Wikipedia (CC BY-SA). Not a medical device.</span>
+  </footer>
+</body>
+</html>

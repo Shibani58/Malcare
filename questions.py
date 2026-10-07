@@ -10,6 +10,14 @@ from pprint import pprint
 FILE_MATCHES = 1
 SENTENCE_MATCHES = 1
 
+# Download the NLTK data this module needs on first use.
+for _resource, _path in (("punkt", "tokenizers/punkt"), ("punkt_tab", "tokenizers/punkt_tab"),
+                         ("stopwords", "corpora/stopwords")):
+    try:
+        nltk.data.find(_path)
+    except LookupError:
+        nltk.download(_resource, quiet=True)
+
 
 def main(question, SENTENCE_MATCHES=1):
 

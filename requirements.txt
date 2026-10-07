@@ -1,0 +1,8 @@
+flask>=2.3
+numpy>=1.23,<2
+pillow>=9.1
+# The models are Keras 2 .h5 files; TensorFlow 2.16+ switched to Keras 3, which cannot load them as-is.
+tensorflow>=2.10,<2.16
+nltk>=3.8
+# Optional: only needed if the FIREBASE_* environment variables are set.
+pyrebase4>=4.7
