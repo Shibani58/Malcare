@@ -9,9 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" defer></script>
-  <script src="app.js?v=2" defer></script>
+  <script src="app.js?v=3" defer></script>
 </head>
 <body>
   <header class="top">
@@ -75,7 +75,8 @@
 
     <section id="ask" class="wrap">
       <h2>Ask about malaria or tuberculosis</h2>
-      <p class="muted">A TF-IDF question-answering engine picks the most relevant document, then the sentence that best answers your question.</p>
+      <p class="muted">Hybrid retrieval (BM25 + MiniLM sentence embeddings) finds the most relevant passages, and a DistilBERT
+        reader extracts the exact answer. It only quotes its sources, so it cannot make up medical facts.</p>
       <form class="ask" id="ask-form">
         <input id="question" type="text" placeholder="e.g. How is malaria transmitted?" autocomplete="off" aria-label="Your question">
         <button class="btn primary" type="submit">Ask</button>
@@ -86,6 +87,7 @@
         <button class="chip">How is malaria diagnosed?</button>
         <button class="chip">Can tuberculosis be cured?</button>
       </div>
+      <p class="qa-status small muted" id="qa-status">The language models load when you start asking (about 90 MB, cached after the first visit).</p>
       <div class="card answer" id="answer" hidden></div>
     </section>
 
@@ -104,8 +106,9 @@
         </div>
         <div class="card">
           <h3>Question answering</h3>
-          <p>Documents and sentences are ranked with TF-IDF after lower-casing and removing punctuation and
-            stop-words; ties go to the sentence with the higher query-term density.</p>
+          <p>Articles are split into overlapping passages. BM25 and MiniLM embeddings each rank them, Reciprocal Rank
+            Fusion merges the two rankings, and a DistilBERT model fine-tuned on SQuAD extracts the answer span, all
+            with Transformers.js.</p>
         </div>
       </div>
     </section>

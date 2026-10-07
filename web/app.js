@@ -1,5 +1,5 @@
-/* MalCare browser demo: runs the original Keras models (converted to TensorFlow.js) and a TF-IDF
- * question-answering engine entirely on the client. Nothing is uploaded or stored. */
+/* MalCare browser demo: runs the original Keras models (converted to TensorFlow.js) and a hybrid-retrieval
+ * question-answering engine (qa.js) entirely on the client. Nothing is uploaded or stored. */
 
 const TESTS = {
   malaria: {
@@ -20,7 +20,7 @@ const SIZE = 224;
 const models = {};
 const results = [];
 let current = 'malaria';
-let image = null; // HTMLImageElement or ImageBitmap ready for analysis
+let image = null; // HTMLImageElement ready for analysis
 
 const $ = (id) => document.getElementById(id);
 
@@ -161,110 +161,42 @@ function wireUi() {
   $('sample').addEventListener('click', () => TESTS[current].sample && showImage(TESTS[current].sample));
   $('analyse').addEventListener('click', analyse);
   $('ask-form').addEventListener('submit', (e) => { e.preventDefault(); askQuestion($('question').value); });
+  // Start downloading the language models as soon as the visitor shows interest in asking.
+  $('question').addEventListener('focus', () => getQa().then((q) => q.engine.prepare()).catch(() => {}), { once: true });
   document.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => {
     $('question').value = c.textContent;
     askQuestion(c.textContent);
   }));
 }
 
-// ---------- Question answering (port of questions.py) ----------
+// ---------- Question answering (hybrid retrieval + neural reader, see qa.js) ----------
 
-// NLTK English stop-word list, as used by the original Python implementation.
-const STOPWORDS = new Set(("i me my myself we our ours ourselves you you're you've you'll you'd your yours yourself yourselves he him his " +
-  "himself she she's her hers herself it it's its itself they them their theirs themselves what which who whom this that that'll these " +
-  "those am is are was were be been being have has had having do does did doing a an the and but if or because as until while of at by " +
-  "for with about against between into through during before after above below to from up down in out on off over under again further " +
-  "then once here there when where why how all any both each few more most other some such no nor not only own same so than too very s t " +
-  "can will just don don't should should've now d ll m o re ve y ain aren aren't couldn couldn't didn didn't doesn doesn't hadn hadn't " +
-  "hasn hasn't haven haven't isn isn't ma mightn mightn't mustn mustn't needn needn't shan shan't shouldn shouldn't wasn wasn't weren " +
-  "weren't won won't wouldn wouldn't").split(' '));
+let qa = null;
 
-const CORPUS_FILES = ['malaria', 'tuberculosis', 'artificial_intelligence', 'machine_learning', 'natural_language_processing',
-  'neural_network', 'probability', 'python'];
-const ANSWER_FILES = new Set(['malaria', 'tuberculosis']); // the demo only answers from the medical documents
-let corpus = null;
-
-function tokenize(text) {
-  const words = text.toLowerCase().match(/[a-z0-9]+(?:['-][a-z0-9]+)*/g) || [];
-  return words.filter((w) => !STOPWORDS.has(w));
-}
-
-function computeIdfs(docs) {
-  const counts = new Map();
-  for (const words of docs.values()) {
-    for (const w of new Set(words)) counts.set(w, (counts.get(w) || 0) + 1);
+/** Loads qa.js on first use so the image demo is not slowed down by the language models. */
+async function getQa() {
+  if (!qa) {
+    const mod = await import(new URL('qa.js?v=3', document.baseURI).href);
+    qa = { engine: new mod.QaEngine((msg) => { $('qa-status').textContent = msg; }), render: mod.renderAnswer };
   }
-  const idfs = new Map();
-  for (const [w, c] of counts) idfs.set(w, Math.log(docs.size / c));
-  return idfs;
-}
-
-async function loadCorpus() {
-  if (corpus) return corpus;
-  const texts = await Promise.all(CORPUS_FILES.map((f) => fetch(`corpus/${f}.txt`).then((r) => r.text())));
-  // Drop Wikipedia citation markers such as [1] or [citation needed].
-  const files = new Map(CORPUS_FILES.map((f, i) => [f, texts[i].replace(/\[[^\]]{1,40}\]/g, '')]));
-  const fileWords = new Map([...files].map(([f, t]) => [f, tokenize(t)]));
-  corpus = { files, fileWords, fileIdfs: computeIdfs(fileWords) };
-  return corpus;
+  return qa;
 }
 
 async function askQuestion(question) {
   const box = $('answer');
-  const query = new Set(tokenize(question));
   box.hidden = false;
-  if (!query.size) {
-    box.innerHTML = '<p class="muted">Please type a question with a few key words.</p>';
+  if (!question.trim()) {
+    box.innerHTML = '<p class="muted">Please type a question.</p>';
     return;
   }
-  box.innerHTML = '<p class="muted">Searching…</p>';
-  const { files, fileWords, fileIdfs } = await loadCorpus();
-
-  // 1. Best document by TF-IDF.
-  let best = null;
-  let bestScore = -1;
-  for (const [f, words] of fileWords) {
-    if (!ANSWER_FILES.has(f)) continue;
-    let score = 0;
-    for (const q of query) {
-      const tf = words.filter((w) => w === q).length;
-      if (tf) score += tf * fileIdfs.get(q);
-    }
-    if (score > bestScore) { best = f; bestScore = score; }
+  box.innerHTML = '<p class="muted">Thinking…</p>';
+  try {
+    const { engine, render } = await getQa();
+    box.innerHTML = render(await engine.ask(question));
+  } catch (err) {
+    console.error(err);
+    box.innerHTML = '<p class="muted">Something went wrong while answering. Please try again.</p>';
   }
-
-  // 2. Best sentences in that document by summed IDF, ties broken by query-term density.
-  const sentences = new Map();
-  for (const passage of files.get(best).split('\n')) {
-    for (const s of passage.split(/(?<=[.!?])\s+(?=[A-Z0-9"“(])/)) {
-      const tokens = tokenize(s);
-      if (tokens.length && s.trim().length > 25) sentences.set(s.trim(), tokens);
-    }
-  }
-  const idfs = computeIdfs(sentences);
-  const ranked = [...sentences].map(([s, tokens]) => {
-    let score = 0;
-    let density = 0;
-    for (const q of query) {
-      if (tokens.includes(q)) {
-        score += idfs.get(q);
-        density += tokens.filter((t) => t === q).length / tokens.length;
-      }
-    }
-    return { s, score, density };
-  }).sort((a, b) => b.score - a.score || b.density - a.density);
-
-  if (!ranked.length || ranked[0].score === 0) {
-    box.innerHTML = '<p class="muted">I could not find an answer to that. Try asking about symptoms, causes, diagnosis or treatment.</p>';
-    return;
-  }
-  const title = best === 'tuberculosis' ? 'Tuberculosis' : 'Malaria';
-  const escape = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  box.innerHTML = `
-    <span class="muted small">Best match · ${title} (Wikipedia)</span>
-    <blockquote>${escape(ranked[0].s)}</blockquote>
-    <span class="muted small">Also relevant</span>
-    <ol>${ranked.slice(1, 3).map((r) => `<li>${escape(r.s)}</li>`).join('')}</ol>`;
 }
 
 // ---------- Start ----------

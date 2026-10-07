@@ -125,6 +125,13 @@ tr:last-child td { border-bottom: 0; }
 .answer { margin-top: 1rem; }
 .answer blockquote { margin: .3rem 0 .8rem; font-size: 1.05rem; border-left: 3px solid var(--primary); padding-left: .9rem; }
 .answer ol { margin: .3rem 0 0; padding-left: 1.2rem; color: var(--muted); font-size: .92rem; }
+.answer ol li { margin-bottom: .35rem; }
+.answer-span { font-size: 1.25rem; font-weight: 700; margin: .2rem 0 .5rem; color: var(--primary); }
+.confidence { display: grid; grid-template-columns: 160px auto; gap: .6rem; align-items: center; margin-bottom: .4rem; }
+.confidence .bar > div { background: var(--primary); }
+mark { background: var(--primary-soft); color: inherit; padding: 0 .15em; border-radius: 4px; font-weight: 600; }
+.rank { display: inline-block; font-size: .72rem; font-weight: 700; color: var(--primary); background: var(--primary-soft); border-radius: 999px; padding: .05rem .5rem; margin-right: .3rem; }
+.qa-status { margin: .6rem 0 0; }
 
 .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
 .how-grid p { color: var(--muted); margin: 0; font-size: .93rem; }
