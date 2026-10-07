@@ -176,7 +176,7 @@ let qa = null;
 /** Loads qa.js on first use so the image demo is not slowed down by the language models. */
 async function getQa() {
   if (!qa) {
-    const mod = await import(new URL('qa.js?v=3', document.baseURI).href);
+    const mod = await import(new URL('qa.js?v=4', document.baseURI).href);
     qa = { engine: new mod.QaEngine((msg) => { $('qa-status').textContent = msg; }), render: mod.renderAnswer };
   }
   return qa;

@@ -14,6 +14,9 @@ const READER = 'Xenova/distilbert-base-cased-distilled-squad';
 const DOCS = { malaria: 'Malaria', tuberculosis: 'Tuberculosis' };
 const TOP_K = 3;
 const RRF_K = 60;
+// Reader scores from different passages are not directly comparable (each is normalised within its own passage),
+// so the final choice also trusts the retrieval ranking: score x prior for fused ranks 1, 2 and 3.
+const RANK_PRIOR = [1, 0.7, 0.4];
 
 const STOPWORDS = new Set(('a an the and or but if of at by for with about against between into through during before after above ' +
   'below to from up down in out on off over under again then once here there when where why how all any both each few more most ' +
@@ -40,6 +43,13 @@ function buildPassages(doc, text) {
     }
   }
   return passages;
+}
+
+/** The reader's tokenizer re-spaces punctuation ("antigen - based"); find the exact span in the passage instead. */
+function originalSpan(answer, text) {
+  const pattern = answer.trim().split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');
+  const match = pattern && new RegExp(pattern).exec(text);
+  return match ? match[0] : answer;
 }
 
 // ---------- BM25 ----------
@@ -134,11 +144,15 @@ export class QaEngine {
     const top = order(fused).slice(0, TOP_K);
 
     const candidates = [];
-    for (const i of top) {
-      const { answer, score } = await this.reader(question, this.passages[i].text);
-      candidates.push({ ...this.passages[i], answer, score, bm25Rank: bm25Rank.get(i), denseRank: denseRank.get(i) });
+    for (const [rank, i] of top.entries()) {
+      const { text } = this.passages[i];
+      const { answer, score } = await this.reader(question, text);
+      candidates.push({
+        ...this.passages[i], answer: originalSpan(answer, text), score, weighted: score * RANK_PRIOR[rank],
+        bm25Rank: bm25Rank.get(i), denseRank: denseRank.get(i),
+      });
     }
-    const best = candidates.reduce((a, c) => (c.score > a.score ? c : a));
+    const best = candidates.reduce((a, c) => (c.weighted > a.weighted ? c : a));
     return { mode: 'neural', best, passages: candidates };
   }
 }
