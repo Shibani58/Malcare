@@ -50,7 +50,7 @@ h3 { font-size: 1.02rem; }
 .top { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
 .top-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 60px; }
 .brand { display: flex; align-items: center; gap: .5rem; font-weight: 800; font-size: 1.2rem; color: var(--text); }
-.brand span { color: var(--primary); }
+.brand b { color: var(--primary); }
 nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
 nav a { color: var(--muted); font-weight: 500; font-size: .95rem; }
 nav a:hover { color: var(--primary); }
