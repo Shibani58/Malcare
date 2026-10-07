@@ -175,7 +175,7 @@ export function renderAnswer(result) {
   }
 
   const { best } = result;
-  const confident = best.score >= 0.15;
+  const confident = best.score >= 0.1;
   const highlighted = (() => {
     const at = best.text.indexOf(best.answer);
     if (!best.answer || at < 0) return escapeHtml(best.text);
